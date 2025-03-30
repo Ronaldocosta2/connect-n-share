@@ -5,7 +5,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { VideoContainer } from './VideoContainer';
 import { WebRTCHandler } from '@/lib/webrtc';
 import { useSocketConnection } from '@/hooks/useSocketConnection';
-import { Video, RefreshCw, Loader2 } from 'lucide-react';
+import { Video, RefreshCw, Loader2, StopCircle } from 'lucide-react';
+import ChatPreferences, { ChatPreferences as ChatPreferencesType } from './ChatPreferences';
 
 const VideoChat: React.FC = () => {
   const { toast } = useToast();
@@ -14,6 +15,12 @@ const VideoChat: React.FC = () => {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [chatPreferences, setChatPreferences] = useState<ChatPreferencesType>({
+    gender: 'any',
+    country: 'any'
+  });
+  
   const webRTCRef = useRef<WebRTCHandler | null>(null);
   
   const { socket, connected: socketConnected } = useSocketConnection('https://random-chat-backend.onrender.com');
@@ -66,6 +73,7 @@ const VideoChat: React.FC = () => {
     socket.on('match', ({ peerId }) => {
       console.log('Matched with peer:', peerId);
       setConnecting(true);
+      setSearching(false);
       
       // Create and initialize peer connection
       webRTCRef.current?.initializePeerConnection(peerId, true);
@@ -106,24 +114,49 @@ const VideoChat: React.FC = () => {
     // Reset connection state
     setConnected(false);
     setConnecting(true);
+    setSearching(true);
     setRemoteStream(null);
     
     // Clean up previous peer connection
     webRTCRef.current?.cleanup();
     
-    // Tell the server we're ready for a new match
+    // Tell the server we're ready for a new match with preferences
     if (socket) {
-      socket.emit('ready');
+      socket.emit('ready', { preferences: chatPreferences });
       
       toast({
         title: "Finding someone new...",
-        description: "Please wait while we connect you."
+        description: `Looking for a ${chatPreferences.gender !== 'any' ? chatPreferences.gender : 'person'} ${chatPreferences.country !== 'any' ? `from ${chatPreferences.country}` : ''}`
       });
     }
   };
 
+  const handleStopSearching = () => {
+    setSearching(false);
+    setConnecting(false);
+    
+    // Clean up previous peer connection
+    webRTCRef.current?.cleanup();
+    
+    toast({
+      title: "Search stopped",
+      description: "You've stopped looking for new connections."
+    });
+  };
+
+  const handlePreferencesChange = (newPreferences: ChatPreferencesType) => {
+    setChatPreferences(newPreferences);
+  };
+
   return (
     <div className="flex flex-col w-full max-w-4xl gap-6 p-4">
+      <div className="mb-4">
+        <ChatPreferences 
+          onPreferencesChange={handlePreferencesChange} 
+          disabled={connecting || searching}
+        />
+      </div>
+      
       <div className="flex flex-col md:flex-row gap-4 w-full">
         {/* Local Video */}
         <div className="w-full md:w-1/2">
@@ -150,30 +183,42 @@ const VideoChat: React.FC = () => {
       
       {/* Controls */}
       <div className="flex justify-center gap-4 mt-4">
-        <Button 
-          size="lg"
-          variant={socketConnected ? "default" : "secondary"}
-          onClick={handleFindNewPeer}
-          disabled={!socketConnected || !initialized || connecting}
-          className="gap-2"
-        >
-          {connecting ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Connecting...
-            </>
-          ) : connected ? (
-            <>
-              <RefreshCw className="h-5 w-5" />
-              Next Person
-            </>
-          ) : (
-            <>
-              <Video className="h-5 w-5" />
-              Start Chatting
-            </>
-          )}
-        </Button>
+        {searching ? (
+          <Button 
+            size="lg"
+            variant="destructive"
+            onClick={handleStopSearching}
+            className="gap-2"
+          >
+            <StopCircle className="h-5 w-5" />
+            Stop Searching
+          </Button>
+        ) : (
+          <Button 
+            size="lg"
+            variant={socketConnected ? "default" : "secondary"}
+            onClick={handleFindNewPeer}
+            disabled={!socketConnected || !initialized || connecting}
+            className="gap-2"
+          >
+            {connecting ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Connecting...
+              </>
+            ) : connected ? (
+              <>
+                <RefreshCw className="h-5 w-5" />
+                Next Person
+              </>
+            ) : (
+              <>
+                <Video className="h-5 w-5" />
+                Start Chatting
+              </>
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );

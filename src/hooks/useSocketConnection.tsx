@@ -27,7 +27,7 @@ export const useSocketConnection = (url: string) => {
       setConnected(true);
       
       // Automatically emit ready event when connected
-      socketInstance.emit('ready');
+      // We're not emitting ready here anymore - it will be triggered by the "Start Chatting" button
     });
     
     socketInstance.on('connect_error', (error) => {
