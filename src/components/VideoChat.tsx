@@ -23,7 +23,7 @@ const VideoChat: React.FC = () => {
   
   const webRTCRef = useRef<WebRTCHandler | null>(null);
   
-  const { socket, connected: socketConnected } = useSocketConnection('https://random-chat-backend.onrender.com');
+  const { socket, connected: socketConnected, emitReady } = useSocketConnection('https://random-chat-backend.onrender.com');
 
   useEffect(() => {
     const initializeMedia = async () => {
@@ -121,13 +121,26 @@ const VideoChat: React.FC = () => {
     webRTCRef.current?.cleanup();
     
     // Tell the server we're ready for a new match with preferences
-    if (socket) {
-      socket.emit('ready', { preferences: chatPreferences });
+    if (socketConnected && initialized) {
+      const success = emitReady(chatPreferences);
       
+      if (success) {
+        toast({
+          title: "Finding someone new...",
+          description: `Looking for a ${chatPreferences.gender !== 'any' ? chatPreferences.gender : 'person'} ${chatPreferences.country !== 'any' ? `from ${chatPreferences.country}` : ''}`
+        });
+      } else {
+        setSearching(false);
+        setConnecting(false);
+      }
+    } else {
       toast({
-        title: "Finding someone new...",
-        description: `Looking for a ${chatPreferences.gender !== 'any' ? chatPreferences.gender : 'person'} ${chatPreferences.country !== 'any' ? `from ${chatPreferences.country}` : ''}`
+        variant: "destructive",
+        title: "Not Ready",
+        description: socketConnected ? "Camera initialization required." : "Not connected to server."
       });
+      setSearching(false);
+      setConnecting(false);
     }
   };
 

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -9,11 +9,13 @@ export const useSocketConnection = (url: string) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Initialize socket connection
+    // Initialize socket connection with more robust connection options
     const socketInstance = io(url, {
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
       reconnectionDelay: 1000,
-      transports: ['websocket']
+      timeout: 10000,
+      transports: ['websocket', 'polling'], // Try both transports
+      upgrade: true
     });
     
     // Store socket in window for global access
@@ -26,8 +28,10 @@ export const useSocketConnection = (url: string) => {
       console.log('Connected to signaling server');
       setConnected(true);
       
-      // Automatically emit ready event when connected
-      // We're not emitting ready here anymore - it will be triggered by the "Start Chatting" button
+      toast({
+        title: "Connected to server",
+        description: "You can now start chatting with other users."
+      });
     });
     
     socketInstance.on('connect_error', (error) => {
@@ -35,7 +39,7 @@ export const useSocketConnection = (url: string) => {
       toast({
         variant: "destructive",
         title: "Connection Error",
-        description: "Failed to connect to the server. Please try again later."
+        description: "Failed to connect to the server. Retrying..."
       });
     });
     
@@ -56,5 +60,21 @@ export const useSocketConnection = (url: string) => {
     };
   }, [url, toast]);
   
-  return { socket, connected };
+  // Add a function to emit ready event
+  const emitReady = useCallback((preferences: any) => {
+    if (socket && connected) {
+      console.log('Emitting ready event with preferences:', preferences);
+      socket.emit('ready', { preferences });
+      return true;
+    }
+    
+    toast({
+      variant: "destructive",
+      title: "Not Connected",
+      description: "Cannot search while disconnected from the server."
+    });
+    return false;
+  }, [socket, connected, toast]);
+  
+  return { socket, connected, emitReady };
 };
