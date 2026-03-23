@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="100" fill="#2563eb" />
+  <path fill="#ffffff" d="M144 208a64 64 0 100 128 64 64 0 000-128zm224 0a64 64 0 100 128 64 64 0 000-128zm-112 32c-17.67 0-32-14.33-32-32s14.33-32 32-32 32 14.33 32 32-14.33 32-32 32z" />
+  <text x="256" y="420" font-family="Arial" font-size="48" font-weight="bold" fill="white" text-anchor="middle">RandomChat</text>
+</svg>
