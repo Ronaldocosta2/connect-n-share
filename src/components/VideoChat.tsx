@@ -22,11 +22,10 @@ const VideoChat: React.FC = () => {
   });
   
   const webRTCRef = useRef<WebRTCHandler | null>(null);
-  
-  // Use production backend when deployed, local backend when developing
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || (import.meta.env.PROD 
-    ? 'https://random-chat-backend.onrender.com' 
-    : 'http://localhost:3001');
+
+  // Use VITE_BACKEND_URL if available. Otherwise, default to the live backend for Lovable Preview compatibility, 
+  // or use localhost IF we explicitly know we are in local development (but we assume cloud test by default now)
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://chatroulette-backend-ofdx.onrender.com';
     
   const { socket, connected: socketConnected, emitReady } = useSocketConnection(backendUrl);
 

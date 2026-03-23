@@ -14,7 +14,7 @@ const io = new Server(server, {
   }
 });
 
-let waitingUser = null;
+let waitingUsers = [];
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -22,23 +22,45 @@ io.on('connection', (socket) => {
   socket.on('ready', (data) => {
     console.log('User ready:', socket.id, 'Preferences:', data.preferences);
     
-    // Simplest matching logic: if someone is waiting, match them!
-    if (waitingUser && waitingUser.id !== socket.id) {
-      const peer1 = waitingUser;
+    // Store user info along with socket
+    const userToQueue = {
+      id: socket.id,
+      socket: socket,
+      preferences: data.preferences
+    };
+
+    // Find a match based on strict preferences
+    const matchIndex = waitingUsers.findIndex(u => {
+      // Don't match with self (shouldn't happen, but safe)
+      if (u.id === socket.id) return false;
+      
+      // Check country preference: must match exactly
+      const countryMatch = (u.preferences.country === data.preferences.country);
+      
+      // Check gender preference: must match exactly 
+      const genderMatch = (u.preferences.gender === data.preferences.gender);
+
+      return countryMatch && genderMatch;
+    });
+
+    if (matchIndex !== -1) {
+      // Match found!
+      const peer1 = waitingUsers[matchIndex].socket;
       const peer2 = socket;
       
-      console.log(`Matching ${peer1.id} with ${peer2.id}`);
+      console.log(`Matching ${peer1.id} with ${peer2.id} (Strict Match)`);
+      
+      // Remove peer1 from waiting list
+      waitingUsers.splice(matchIndex, 1);
       
       // Tell peer1 they are matched with peer2 (peer1 will be the initiator)
       peer1.emit('match', { peerId: peer2.id });
       // We do NOT emit match to peer2. peer2 will initialize when it receives the first signal.
       
-      // Clear waiting user
-      waitingUser = null;
     } else {
-      // Nobody waiting, so this user becomes the waiting user
-      console.log('User waiting for match:', socket.id);
-      waitingUser = socket;
+      // Nobody waiting matches these exact preferences, so add to queue
+      console.log('User waiting for strict match:', socket.id);
+      waitingUsers.push(userToQueue);
     }
   });
 
