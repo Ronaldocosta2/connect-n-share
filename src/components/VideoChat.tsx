@@ -23,7 +23,7 @@ const VideoChat: React.FC = () => {
   
   const webRTCRef = useRef<WebRTCHandler | null>(null);
   
-  const { socket, connected: socketConnected, emitReady } = useSocketConnection('https://random-chat-backend.onrender.com');
+  const { socket, connected: socketConnected, emitReady } = useSocketConnection('http://localhost:3001');
 
   useEffect(() => {
     const initializeMedia = async () => {
