@@ -23,7 +23,12 @@ const VideoChat: React.FC = () => {
   
   const webRTCRef = useRef<WebRTCHandler | null>(null);
   
-  const { socket, connected: socketConnected, emitReady } = useSocketConnection('http://localhost:3001');
+  // Use production backend when deployed, local backend when developing
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || (import.meta.env.PROD 
+    ? 'https://random-chat-backend.onrender.com' 
+    : 'http://localhost:3001');
+    
+  const { socket, connected: socketConnected, emitReady } = useSocketConnection(backendUrl);
 
   useEffect(() => {
     const initializeMedia = async () => {

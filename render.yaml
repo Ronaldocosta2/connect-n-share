@@ -1,0 +1,21 @@
+services:
+  # O servidor Backend (Node.js)
+  - type: web
+    name: chatroulette-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+
+  # A interface Frontend (React/Vite)
+  - type: web
+    name: connect-n-share
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_BACKEND_URL
+        fromService:
+          type: web
+          name: chatroulette-backend
+          envVarKey: RENDER_EXTERNAL_URL
